@@ -1,6 +1,6 @@
 [package]
 name = "robinrust"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2024"
 
 # New / missing metadata you should add:
