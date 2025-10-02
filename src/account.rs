@@ -1,9 +1,15 @@
+//! Account endpoints for Robinhood crypto.
+//!
+//! Provides a minimal helper to fetch account information such as buying
+//! power and status.
+
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use crate::auth::Robinhood;
 
 
 #[derive(Serialize, Deserialize)]
+/// Basic account information for a Robinhood crypto account.
 pub struct AccountInfo{
     pub account_number: String,
     pub status: String,
@@ -11,6 +17,9 @@ pub struct AccountInfo{
     pub buying_power_currency: String,
 }
 
+/// Fetch the authenticated crypto account's basic information.
+///
+/// Returns account number, status, and buying power details.
 pub async fn get_account_info(rh: &Robinhood) -> Result<AccountInfo, reqwest::Error>{
     let path = "/api/v1/crypto/trading/accounts/";
     let headers = rh.auth_headers(path, "GET", "");

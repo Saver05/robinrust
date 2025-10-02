@@ -1,3 +1,7 @@
+//! Market data endpoints for crypto symbols.
+//!
+//! This module provides helpers to query best bid/ask and estimated prices
+//! from the Robinhood crypto market data API.
 
 use reqwest::Client;
 use serde::{Serialize, Deserialize};
@@ -5,6 +9,7 @@ use crate::auth::Robinhood;
 use rust_decimal::Decimal;
 
 #[derive(Debug, Serialize, Deserialize)]
+/// Best bid/ask snapshot for a symbol from Robinhood.
 pub struct BestPriceResult {
     pub symbol: String,
 
@@ -28,10 +33,14 @@ pub struct BestPriceResult {
 
 
 #[derive(Debug, Serialize, Deserialize)]
+/// Response wrapper containing best price results.
 pub struct BestPriceResponse {
     pub results: Vec<BestPriceResult>,
 }
 
+/// Fetch the best bid/ask for one or more symbols.
+///
+/// `symbols` should be Robinhood crypto pairs like "BTC-USD".
 pub async fn get_best_price(rh: &Robinhood, symbols: Vec<&str>) -> Result<BestPriceResponse, reqwest::Error>{
     let mut path = String::from("/api/v1/crypto/marketdata/best_bid_ask/");
     if !symbols.is_empty() {
@@ -56,6 +65,7 @@ pub async fn get_best_price(rh: &Robinhood, symbols: Vec<&str>) -> Result<BestPr
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+/// Estimated execution price for a hypothetical trade request.
 pub struct EstimatedPriceResult {
     pub symbol: String,
 
@@ -84,11 +94,15 @@ pub struct EstimatedPriceResult {
 
 
 #[derive(Debug, Serialize, Deserialize)]
+/// Response wrapper containing estimated price results.
 pub struct EstimatedPriceResponse {
     pub results: Vec<EstimatedPriceResult>,
 }
 
 
+/// Get an estimated execution price for a given symbol, side, and quantity.
+///
+/// `side` is either "bid" or "ask"; `quantity` is the trade size.
 pub async fn get_estimated_price(rh: &Robinhood, symbol: &str, side: &str, quantity: Decimal) -> Result<EstimatedPriceResponse, reqwest::Error> {
     let  path = format!("/api/v1/crypto/marketdata/estimated_price/?symbol={symbol}&side={side}&quantity={quantity}");
     let headers = rh.auth_headers(&path, "GET", "");

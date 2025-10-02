@@ -1,12 +1,18 @@
-use std::fmt::{format, Error};
-use std::str::FromStr;
-use reqwest::Client;
-use serde::{Serialize, Deserialize};
+//! Trading-related endpoints for Robinhood crypto.
+//!
+//! This module exposes helpers to query trading pairs and holdings, list and
+//! create crypto orders, and cancel existing orders. All functions rely on
+//! authenticated requests built via the `auth` module.
+
 use crate::auth::Robinhood;
+use reqwest::Client;
 use rust_decimal::Decimal;
+use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use typed_builder::TypedBuilder;
 use uuid::Uuid;
 #[derive(Debug, Serialize, Deserialize)]
+/// Response containing available crypto trading pairs.
 pub struct CryptoTradingPairsResponse{
     pub next: Option<String>,
     pub previous: Option<String>,
@@ -14,6 +20,7 @@ pub struct CryptoTradingPairsResponse{
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+/// A tradable crypto pair (e.g., BTC-USD) with increments and size limits.
 pub struct TradingPairs{
     pub asset_code: String,
     pub quote_code: String,
@@ -25,6 +32,7 @@ pub struct TradingPairs{
 }
 
 impl TradingPairs{
+    /// Check if a quantity is within the allowed min/max order sizes for this pair.
     pub fn check_valid_trade(&self, quantity: Decimal) -> bool{
         let max_order_size = Decimal::from_str(&self.max_order_size).unwrap();
         let min_order_size = Decimal::from_str(&self.asset_increment).unwrap();
@@ -32,6 +40,9 @@ impl TradingPairs{
     }
 }
 
+/// List supported crypto trading pairs, optionally filtered by symbol(s).
+///
+/// `symbols` should be values like "BTC-USD"; when empty, returns all pairs.
 pub async fn get_crypto_trading_pairs(rh: &Robinhood, symbols: Vec<&str>) -> Result<CryptoTradingPairsResponse, reqwest::Error>{
     let mut path = String::from("/api/v1/crypto/trading/trading_pairs/");
     if !symbols.is_empty() {
@@ -70,6 +81,7 @@ async fn test_get_trading_pairs(){
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+/// Response containing crypto holdings for the account.
 pub struct CryptoHoldingsResponse{
     pub next: Option<String>,
     pub previous: Option<String>,
@@ -77,6 +89,7 @@ pub struct CryptoHoldingsResponse{
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+/// A single crypto holding entry for the account.
 pub struct CryptoHoldings{
     pub account_number: String,
     pub asset_code: String,
@@ -86,6 +99,9 @@ pub struct CryptoHoldings{
     pub quantity_available_for_trading: Decimal,
 }
 
+/// Get holdings for the authenticated account, optionally filtering by asset code(s).
+///
+/// `symbols` contains asset codes like "BTC"; when empty, returns all holdings.
 pub async fn get_crypto_holdings(rh: &Robinhood, symbols: Vec<&str>) -> Result<CryptoHoldingsResponse, reqwest::Error>{
     let mut path = String::from("/api/v1/crypto/trading/holdings/");
     if !symbols.is_empty() {
@@ -123,6 +139,7 @@ async fn test_get_crypto_holdings(){
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+/// Paginated response for listing crypto orders.
 pub struct CryptoOrdersResponse {
     pub next: Option<String>,
     pub previous: Option<String>,
@@ -130,6 +147,7 @@ pub struct CryptoOrdersResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+/// A crypto order as returned by Robinhood's trading API.
 pub struct CryptoOrder {
     pub id: String,
     pub account_number: String,
@@ -161,6 +179,7 @@ pub struct CryptoOrder {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+/// An execution fill for an order.
 pub struct Executions {
     pub effective_price: String,
     pub quantity: String,
@@ -168,12 +187,14 @@ pub struct Executions {
 }
 
 #[derive(Debug, Serialize, Deserialize, TypedBuilder)]
+/// Parameters for a market order.
 pub struct MarketOrderConfig {
     #[serde(with = "rust_decimal::serde::str")]
     pub asset_quantity: Decimal,
 }
 
 #[derive(Debug, Serialize, Deserialize, TypedBuilder)]
+/// Parameters for a limit order.
 pub struct LimitOrderConfig {
     // Any of these may be omitted; they also arrive as strings
     #[serde(default, with = "rust_decimal::serde::str_option")]
@@ -191,6 +212,7 @@ pub struct LimitOrderConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize, TypedBuilder)]
+/// Parameters for a stop-loss order.
 pub struct StopLossOrderConfig {
     #[serde(default, with = "rust_decimal::serde::str_option")]
     #[builder(default, setter(strip_option, into))]
@@ -206,6 +228,7 @@ pub struct StopLossOrderConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize, TypedBuilder)]
+/// Parameters for a stop-limit order.
 pub struct StopLimitOrderConfig {
     #[serde(default, with = "rust_decimal::serde::str_option")]
     #[builder(default, setter(strip_option, into))]
@@ -224,6 +247,7 @@ pub struct StopLimitOrderConfig {
 
 
 #[derive(Debug, Serialize, Deserialize, TypedBuilder)]
+/// Query parameters for listing crypto orders.
 pub struct GetCryptoOrderParams{
     #[builder(default, setter(strip_option, into))]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -259,6 +283,7 @@ pub struct GetCryptoOrderParams{
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<u32>,
 }
+/// List crypto orders for the authenticated account using optional filters.
 pub async fn get_crypto_orders(rh: &Robinhood,params: GetCryptoOrderParams) -> Result<CryptoOrdersResponse, reqwest::Error>{
     let path = String::from("/api/v1/crypto/trading/orders/");
     let headers = rh.auth_headers(&path, "GET", "");
@@ -286,6 +311,7 @@ async fn test_get_crypto_orders(){
 }
 
 #[derive(Debug, Serialize, Deserialize, TypedBuilder)]
+/// Parameters for creating a crypto order.
 pub struct CreateCyptoOrderParams{
     pub symbol: String,
     pub client_order_id: String,
@@ -307,6 +333,7 @@ pub struct CreateCyptoOrderParams{
 }
 
 #[derive(Debug, Serialize, Deserialize, TypedBuilder)]
+/// Response returned after creating a crypto order.
 pub struct CreateCryptoOrderResponse{
     pub id: String,
     pub account_number: String,
@@ -329,6 +356,7 @@ pub struct CreateCryptoOrderResponse{
     pub stop_limit_order_config: Option<StopLimitOrderConfig>,
 }
 
+/// Create a new crypto order with the provided parameters.
 pub async fn create_crypto_order(rh: &Robinhood, param: CreateCyptoOrderParams) -> Result<CreateCryptoOrderResponse, reqwest::Error>{
     let path = "/api/v1/crypto/trading/orders/";
     let headers = rh.auth_headers(&path, "POST", &serde_json::to_string(&param).unwrap());
@@ -344,6 +372,7 @@ pub async fn create_crypto_order(rh: &Robinhood, param: CreateCyptoOrderParams) 
 
 
 
+/// Attempt to cancel a crypto order by its ID.
 pub async fn cancel_crypto_order(rh: &Robinhood, id: String) -> Result<String, reqwest::Error>{
     let path = format!("/api/v1/crypto/trading/orders/{}/cancel/", id);
     let headers = rh.auth_headers(&path, "POST", "");
