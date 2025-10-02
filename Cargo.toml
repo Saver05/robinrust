@@ -1,7 +1,17 @@
 [package]
 name = "robinrust"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
+
+# New / missing metadata you should add:
+description = "A lightweight, async Rust library for interacting with Robinhood's Crypto trading endpoints."
+readme = "README.md"
+license = "MIT OR Apache-2.0"  # or whichever license you choose
+repository = "https://github.com/Saver05/robinrust"
+documentation = "https://docs.rs/robinrust"  # optional, but nice
+keywords = ["rust", "api", "crypto", "robinhood", "finance"]     # a short list of relevant keywords
+categories = ["cryptography", "network-programming", "finance"]  # choose from crates.io categories
+
 
 [dependencies]
 dotenv = "0.15.0"
