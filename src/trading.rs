@@ -27,6 +27,7 @@ pub struct TradingPairs{
     pub quote_increment: String,
     pub asset_increment: String,
     pub max_order_size: String,
+    pub min_order_size: String,
     pub status: String,
     pub symbol: String,
 }
@@ -35,7 +36,7 @@ impl TradingPairs{
     /// Check if a quantity is within the allowed min/max order sizes for this pair.
     pub fn check_valid_trade(&self, quantity: Decimal) -> bool{
         let max_order_size = Decimal::from_str(&self.max_order_size).unwrap();
-        let min_order_size = Decimal::from_str(&self.asset_increment).unwrap();
+        let min_order_size = Decimal::from_str(&self.min_order_size).unwrap();
         quantity <= max_order_size && quantity >= min_order_size
     }
 }
